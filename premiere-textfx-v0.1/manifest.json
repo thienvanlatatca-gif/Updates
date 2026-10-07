@@ -1,0 +1,28 @@
+{
+  "manifestVersion": 5,
+  "id": "com.quan.premiere.textfx",
+  "name": "Premiere TextFX Library",
+  "version": "0.1.0",
+  "main": "index.html",
+  "host": {
+    "app": "premierepro",
+    "minVersion": "25.6.0"
+  },
+  "requiredPermissions": {
+    "localFileSystem": "request",
+    "launchProcess": {
+      "schemes": ["https"]
+    }
+  },
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "textfxPanel",
+      "label": { "default": "TextFX Library" },
+      "minimumSize": { "width": 380, "height": 520 },
+      "maximumSize": { "width": 1800, "height": 1800 },
+      "preferredDockedSize": { "width": 520, "height": 720 },
+      "preferredFloatingSize": { "width": 560, "height": 760 }
+    }
+  ]
+}
