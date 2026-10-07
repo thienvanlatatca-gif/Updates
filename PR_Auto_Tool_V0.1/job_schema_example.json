@@ -1,0 +1,43 @@
+{
+  "schema": "pr-auto-job-v1",
+  "video": {
+    "path": "D:/video/main.mp4",
+    "duration_sec": 600,
+    "srt_path": "D:/video/main.srt",
+    "words_path": "D:/video/main.words.json"
+  },
+  "premiere": {
+    "sequence_name": "main_PR_AUTO",
+    "create_new_sequence": true,
+    "main_video_track": 1,
+    "main_audio_track": 0,
+    "background_video_track": 0,
+    "text_video_track": 3,
+    "logo_video_track": 4
+  },
+  "background": {
+    "enabled": true,
+    "files": ["D:/broll/a.mp4", "D:/broll/b.mp4"],
+    "scene_seconds": 8,
+    "main_scale_percent": 82
+  },
+  "bgm": {
+    "enabled": true,
+    "files": ["D:/music/bed.mp3"],
+    "db": -25,
+    "audio_track": 1
+  },
+  "branding": {
+    "logo_enabled": true,
+    "logo_path": "D:/brand/logo.png",
+    "voice_files": []
+  },
+  "text_templates": {
+    "enabled": true,
+    "template_id": "quick-bold",
+    "apply_mode": "Câu nổi bật",
+    "events": [
+      { "start": 12.4, "end": 14.8, "text": "WHY DOES THIS COST $800?" }
+    ]
+  }
+}
