@@ -1,1 +1,1 @@
-{"name":"PR Auto Tool","version":"0.2.0","premiere_min":"15.0 / Premiere Pro 2021","bridge":"CEP+ExtendScript","job_schema":"pr-auto-job-v1"}
+{"name":"PR Auto Tool","version":"0.3.0","premiere_supported":"15.x / 22.x / 23.x+ (Premiere Pro 2021 / 2022 / 2023+)","bridge":"CEP+ExtendScript","job_schema":"pr-auto-job-v1"}
