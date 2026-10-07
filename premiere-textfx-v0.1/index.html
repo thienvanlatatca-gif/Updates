@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Premiere TextFX Library</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="topbar">
+      <div>
+        <div class="title">TextFX Library</div>
+        <div class="subtitle">Mẫu text kiểu CapCut cho Premiere Pro</div>
+      </div>
+      <button id="chooseFolderBtn" class="smallBtn">Chọn thư mục MOGRT</button>
+    </div>
+    <div class="tabs" id="tabs">
+      <button class="tab" data-tab="basic">Cơ bản</button>
+      <button class="tab active" data-tab="templates">Mẫu</button>
+      <button class="tab" data-tab="bubble">Bong bóng</button>
+      <button class="tab" data-tab="effects">Hiệu ứng</button>
+    </div>
+    <div class="toolbar">
+      <input id="searchInput" class="search" type="text" placeholder="Tìm kiếm mẫu văn bản" />
+      <div class="trackRow">
+        <label for="trackInput">Track chèn:</label>
+        <select id="trackInput">
+          <option value="1">V1</option><option value="2">V2</option>
+          <option value="3" selected>V3</option><option value="4">V4</option>
+          <option value="5">V5</option><option value="6">V6</option>
+        </select>
+      </div>
+    </div>
+    <div id="chips" class="chips"></div>
+    <div class="sectionHeader">
+      <span id="sectionTitle">Đang thịnh hành</span>
+      <span id="readyCount" class="muted"></span>
+    </div>
+    <div id="cards" class="cards"></div>
+    <div id="emptyState" class="empty hidden">Tab này sẽ được bổ sung sau. Bản V0.1 tập trung vào thư viện MOGRT.</div>
+    <div class="footer">
+      <div id="folderState" class="muted">Chưa chọn thư mục MOGRT.</div>
+      <div id="status" class="status">Sẵn sàng.</div>
+    </div>
+  </div>
+  <script src="catalog.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
