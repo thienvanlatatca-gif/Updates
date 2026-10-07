@@ -1,0 +1,1 @@
+{"name":"PR Auto Tool","version":"0.4.0","premiere_supported":"15.x / 22.x / 23.x+","bridge":"CEP+ExtendScript","chatgpt":"Sign in with ChatGPT + Responses API","job_schema":"pr-auto-job-v1","ai_cut_schema":"pr-auto-ai-cut-plan-v1"}
