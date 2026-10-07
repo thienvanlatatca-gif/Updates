@@ -1,0 +1,12 @@
+const TEMPLATE_CATALOG = [
+  { id:"kick-fall", name:"Kick Fall Headline", category:["Đang thịnh hành","Kinetic"], previewClass:"p-kinetic", previewText:"KICK\nFALL", source:"https://mixkit.co/free-premiere-pro-templates/kick-fall-headline-title-77/" },
+  { id:"double-headline", name:"Double Headline Blocks", category:["Đang thịnh hành","Kinetic"], previewClass:"p-bounce", previewText:"DOUBLE\nHEADLINE", source:"https://mixkit.co/free-premiere-pro-templates/double-headline-blocks-title-76/" },
+  { id:"cartoon-dust", name:"Cartoon Dust Title", category:["Cartoon"], previewClass:"p-cartoon", previewText:"DUST\nPOP!", source:"https://mixkit.co/free-premiere-pro-templates/cartoon-dust-title-29/" },
+  { id:"colorful-splash", name:"Colorful Playful Splash", category:["Cartoon","Đang thịnh hành"], previewClass:"p-splash", previewText:"PLAYFUL\nSPLASH", source:"https://mixkit.co/free-premiere-pro-templates/colorful-playful-text-splash-21/" },
+  { id:"two-line-trail", name:"Two-line Animated Title", category:["Modern"], previewClass:"p-trail", previewText:"TWO LINE\nTITLE", source:"https://mixkit.co/free-premiere-pro-templates/two-line-animated-title-294/" },
+  { id:"luminescent", name:"Luminescent Gradient", category:["Neon","Modern"], previewClass:"p-neon", previewText:"LUMI\nGLOW", source:"https://mixkit.co/free-premiere-pro-templates/luminescent-title-and-circles-with-gradient-186/" },
+  { id:"quick-bold", name:"Quick Bold Title", category:["Đang thịnh hành","Modern"], previewClass:"p-bold", previewText:"QUICK\nBOLD", source:"https://mixkit.co/free-premiere-pro-templates/quick-bold-title-17/" },
+  { id:"film-glitch", name:"Film Glitch Title", category:["Glitch"], previewClass:"p-glitch", previewText:"FILM\nGLITCH", source:"https://mixkit.co/free-premiere-pro-templates/film-glitch-title-516/" },
+  { id:"animated-cluster", name:"Animated Cluster Title", category:["Modern","Kinetic"], previewClass:"p-cluster", previewText:"ANI\nMA\nTED", source:"https://mixkit.co/free-premiere-pro-templates/animated-cluster-title-16/" },
+  { id:"colorful-glitch", name:"Colorful Glitch Text", category:["Glitch","Đang thịnh hành"], previewClass:"p-fracture", previewText:"COLOR\nGLITCH", source:"https://mixkit.co/free-premiere-pro-templates/colorful-glitch-text-513/" }
+];
