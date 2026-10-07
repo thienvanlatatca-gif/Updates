@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PR Auto Bridge 2021+</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="header">
+      <div>
+        <div class="title">PR Auto Bridge 2021+</div>
+        <div class="sub">CEP / ExtendScript — Premiere Pro 2021 trở lên</div>
+      </div>
+      <button id="systemBtn">Kiểm tra</button>
+    </header>
+    <section class="panel hero">
+      <div class="row wrap">
+        <button id="connectBridgeBtn" class="primary">KẾT NỐI BRIDGE FOLDER</button>
+        <button id="loadJobBtn">ĐỌC JOB MỚI NHẤT</button>
+        <button id="buildBtn" class="cta">▶ DỰNG JOB MỚI NHẤT</button>
+      </div>
+      <div id="bridgeState" class="muted">Chưa kết nối bridge folder.</div>
+      <div id="jobState" class="jobState">Chưa đọc job.</div>
+    </section>
+    <nav class="tabs">
+      <button class="tab active" data-tab="builder">Auto Build</button>
+      <button class="tab" data-tab="templates">Text Templates</button>
+      <button class="tab" data-tab="logs">Log</button>
+    </nav>
+    <section id="tab-builder" class="tabBody">
+      <div class="panel"><div class="sectionTitle">Job hiện tại</div><div id="jobSummary" class="summary muted">Chưa có job.</div></div>
+      <div class="panel">
+        <div class="sectionTitle">Tùy chọn dựng</div>
+        <label class="check"><input id="skipBackground" type="checkbox" /> Bỏ qua background/B-roll</label>
+        <label class="check"><input id="skipBgm" type="checkbox" /> Bỏ qua BGM</label>
+        <label class="check"><input id="skipBrand" type="checkbox" /> Bỏ qua logo/voice</label>
+        <label class="check"><input id="skipText" type="checkbox" /> Bỏ qua Text Templates</label>
+        <label class="check"><input id="stopOnTextError" type="checkbox" /> Dừng nếu MOGRT chưa gán/không sửa được text</label>
+      </div>
+      <div class="panel note"><b>Premiere 2021:</b> panel này dùng CEP + ExtendScript, không cần UXP Developer Tool. MOGRT được chèn bằng API <code>Sequence.importMGT()</code>.</div>
+    </section>
+    <section id="tab-templates" class="tabBody hidden">
+      <div class="panel"><div class="row wrap"><input id="searchInput" placeholder="Tìm mẫu text..." /><button id="scanFolderBtn">Quét folder MOGRT</button></div><div id="chips" class="chips"></div></div>
+      <div id="templateGrid" class="grid"></div>
+    </section>
+    <section id="tab-logs" class="tabBody hidden">
+      <div class="panel"><button id="clearLogBtn">Xóa log</button></div>
+      <pre id="log" class="log"></pre>
+    </section>
+    <footer><span id="status">Sẵn sàng.</span><span id="templateReady" class="muted"></span></footer>
+  </div>
+  <script src="catalog.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
