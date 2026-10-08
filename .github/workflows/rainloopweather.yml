@@ -42,3 +42,5 @@ jobs:
         with:
           name: RainLoopWeather_V1_Windows
           path: src/package/
+
+# trigger public build
