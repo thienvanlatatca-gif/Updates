@@ -3,7 +3,7 @@ on:
   push:
     branches: [ rain-loop-weather-v1 ]
     paths:
-      - 'RainLoopWeather_Source_V1.zip'
+      - 'RainLoopWeather_B64/**'
       - '.github/workflows/rainloopweather.yml'
   workflow_dispatch:
 
@@ -15,9 +15,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: mkdir src && unzip -q RainLoopWeather_Source_V1.zip -d src
-      - run: python -m compileall -q src
-      - working-directory: src
+      - name: Rebuild source zip
+        run: cat RainLoopWeather_B64/part*.txt | tr -d '\r\n' | base64 -d > source.zip
+      - name: Unpack source
+        run: mkdir src && unzip -q source.zip -d src
+      - name: Syntax check
+        run: python -m compileall -q src
+      - name: Unit tests
+        working-directory: src
         run: python -m unittest discover -s tests -v
 
   windows-build:
@@ -27,9 +32,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - shell: pwsh
-        run: Expand-Archive -Path RainLoopWeather_Source_V1.zip -DestinationPath src
-      - working-directory: src
+      - name: Rebuild source zip
+        shell: pwsh
+        run: |
+          $b64 = (Get-ChildItem RainLoopWeather_B64\part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          [IO.File]::WriteAllBytes('source.zip',[Convert]::FromBase64String($b64))
+          Expand-Archive -Path source.zip -DestinationPath src
+      - name: Build EXE
+        working-directory: src
         shell: pwsh
         run: |
           python -m pip install --upgrade pyinstaller
@@ -38,9 +48,9 @@ jobs:
           Copy-Item dist\RainLoopWeather.exe package\RainLoopWeather.exe
           Copy-Item README.md package\README.md
           Copy-Item install_ffmpeg_windows.bat package\install_ffmpeg_windows.bat
+          Copy-Item ..\source.zip package\RainLoopWeather_Source_V1.zip
       - uses: actions/upload-artifact@v4
         with:
           name: RainLoopWeather_V1_Windows
           path: src/package/
-
-# trigger public build
+          if-no-files-found: error
