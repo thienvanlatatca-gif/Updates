@@ -4,7 +4,7 @@ on:
   push:
     branches: [ rain-loop-weather-fast-v1.1 ]
     paths:
-      - 'RainLoopWeatherFast_Source_V1.1.zip'
+      - 'RainLoopWeatherFast_B64/**'
       - '.github/workflows/rainloopweather_fast_v11.yml'
       - 'RainLoopWeatherFast_README.md'
   workflow_dispatch:
@@ -17,10 +17,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Rebuild source zip
+        run: cat RainLoopWeatherFast_B64/part*.txt | tr -d '\r\n' | base64 -d > source.zip
       - name: Unpack source
-        run: |
-          mkdir src
-          unzip -q RainLoopWeatherFast_Source_V1.1.zip -d src
+        run: mkdir src && unzip -q source.zip -d src
       - name: Syntax check
         run: python -m compileall -q src
       - name: Unit tests
@@ -34,9 +34,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Unpack source
+      - name: Rebuild source zip
         shell: pwsh
-        run: Expand-Archive -Path RainLoopWeatherFast_Source_V1.1.zip -DestinationPath src
+        run: |
+          $b64 = (Get-ChildItem RainLoopWeatherFast_B64\part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          [IO.File]::WriteAllBytes('source.zip',[Convert]::FromBase64String($b64))
+          Expand-Archive -Path source.zip -DestinationPath src
       - name: Build EXE
         working-directory: src
         shell: pwsh
@@ -47,7 +50,7 @@ jobs:
           Copy-Item dist\RainLoopWeatherFast.exe package\RainLoopWeatherFast.exe
           Copy-Item README.md package\README.md
           Copy-Item install_ffmpeg_windows.bat package\install_ffmpeg_windows.bat
-          Copy-Item ..\RainLoopWeatherFast_Source_V1.1.zip package\RainLoopWeatherFast_Source_V1.1.zip
+          Copy-Item ..\source.zip package\RainLoopWeatherFast_Source_V1.1.zip
       - uses: actions/upload-artifact@v4
         with:
           name: RainLoopWeatherFast_V1.1_Windows
