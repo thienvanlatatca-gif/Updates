@@ -1,4 +1,5 @@
 name: RainLoopWeather CI
+
 on:
   push:
     branches: [ rain-loop-weather-v1 ]
@@ -38,6 +39,21 @@ jobs:
           $b64 = (Get-ChildItem RainLoopWeather_B64\part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
           [IO.File]::WriteAllBytes('source.zip',[Convert]::FromBase64String($b64))
           Expand-Archive -Path source.zip -DestinationPath src
+      - name: Patch NVENC driver fallback
+        shell: pwsh
+        run: |
+          $p = 'src\rainloop\engine.py'
+          $s = Get-Content $p -Raw
+          $old = "return 'h264_nvenc' if ffmpeg_has_encoder('h264_nvenc') else 'libx264'"
+          $s = $s.Replace($old, "return 'libx264'")
+          Set-Content -Path $p -Value $s -Encoding UTF8
+          $v = 'src\rainloop\__init__.py'
+          if (Test-Path $v) {
+            $vs = Get-Content $v -Raw
+            $vs = $vs.Replace("__version__ = '1.0.0'", "__version__ = '1.0.1'")
+            Set-Content -Path $v -Value $vs -Encoding UTF8
+          }
+          Compress-Archive -Path src\* -DestinationPath RainLoopWeather_Source_V1.0.1.zip -Force
       - name: Build EXE
         working-directory: src
         shell: pwsh
@@ -48,9 +64,9 @@ jobs:
           Copy-Item dist\RainLoopWeather.exe package\RainLoopWeather.exe
           Copy-Item README.md package\README.md
           Copy-Item install_ffmpeg_windows.bat package\install_ffmpeg_windows.bat
-          Copy-Item ..\source.zip package\RainLoopWeather_Source_V1.zip
+          Copy-Item ..\RainLoopWeather_Source_V1.0.1.zip package\RainLoopWeather_Source_V1.0.1.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: RainLoopWeather_V1_Windows
+          name: RainLoopWeather_V1.0.1_NVENC_FIX
           path: src/package/
           if-no-files-found: error
