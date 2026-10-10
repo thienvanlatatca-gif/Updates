@@ -1,0 +1,235 @@
+diff --git a/QuanZuRainV2_v21_base/README.md b/QuanZuRainV2_v22/README.md
+index 124d63e..0ac1579 100644
+--- a/QuanZuRainV2_v21_base/README.md
++++ b/QuanZuRainV2_v22/README.md
+@@ -1,7 +1,15 @@
+-# QuanZu Rain V2.1 FAST
++# QuanZu Rain V2.2 FAST
+ 
+ Tool FFmpeg chuyên tạo video mưa 8–12 giờ từ một video loop ngắn, có bảng thời tiết và 3 lớp âm thanh Mưa / Sóng / Sấm.
+ 
++
++## V2.2 — hạ bitrate để file 10 giờ còn khoảng 16–18 GB
++- Thêm dòng **Bitrate video (kbps)** trong phần chất lượng, mặc định **3600 kbps**.
++- Với video 10 giờ và AAC 192k, 3600 kbps cho mức mục tiêu khoảng **16–18 GiB/GB hiển thị trên Windows**; kích thước thực tế có thể dao động nhẹ theo encoder và container.
++- Nhập `0` để tắt ép bitrate và quay về CRF/CQ.
++- Bitrate được áp dụng khi video có encode: **Chuẩn hóa FAST**, Smart Brightness hoặc Full Encode. Nếu COPY nguyên video nguồn thì bitrate không thể giảm vì không encode lại.
++- Đổi bitrate tạo **cache mới**; tool không dùng nhầm cache cũ ở bitrate khác.
++
+ ## V2.1 sửa các lỗi thực tế
+ 
+ - **Output là thư mục**: nút `Chọn folder`, tên file được tự tạo theo video nguồn + số giờ.
+diff --git a/QuanZuRainV2_v21_base/app.py b/QuanZuRainV2_v22/app.py
+index 872fb7f..cca8bee 100644
+--- a/QuanZuRainV2_v21_base/app.py
++++ b/QuanZuRainV2_v22/app.py
+@@ -17,7 +17,7 @@ from rainloop.engine import (
+     output_storage_report, format_bytes,
+ )
+ 
+-APP_TITLE = 'QUANZU RAIN V2.1 FAST — FFmpeg 8–12H'
++APP_TITLE = 'QUANZU RAIN V2.2 FAST — FFmpeg 8–12H'
+ POINTS = 9
+ 
+ PRESETS = {
+@@ -159,6 +159,7 @@ class App(tk.Tk):
+         self.v_normalize_fast = tk.BooleanVar(value=True)
+         self.v_resolution = tk.StringVar(value='1080p')
+         self.v_fps = tk.StringVar(value='24')
++        self.v_video_bitrate = tk.IntVar(value=3600)
+         self.v_block_seconds = tk.DoubleVar(value=60.0)
+         self.v_preset_x264 = tk.StringVar(value='veryfast')
+         self.v_crf = tk.IntVar(value=22)
+@@ -170,7 +171,7 @@ class App(tk.Tk):
+ 
+     def _build_ui(self):
+         top = ttk.Frame(self, padding=10); top.pack(fill='x')
+-        ttk.Label(top, text='QUANZU RAIN V2.1 FAST', font=('Segoe UI', 18, 'bold')).pack(side='left')
++        ttk.Label(top, text='QUANZU RAIN V2.2 FAST', font=('Segoe UI', 18, 'bold')).pack(side='left')
+         ttk.Label(top, text='  •  Fast Loop/Copy + bảng thời tiết + Mưa/Sóng/Sấm').pack(side='left', pady=(7,0))
+         ttk.Button(top, text='Lưu project', command=self.save_project).pack(side='right', padx=4)
+         ttk.Button(top, text='Mở project', command=self.load_project).pack(side='right', padx=4)
+@@ -252,8 +253,12 @@ class App(tk.Tk):
+         cb_res=ttk.Combobox(cfg,textvariable=self.v_resolution,values=['720p','1080p','1440p','2160p','keep'],width=9,state='readonly'); cb_res.grid(row=3,column=6,pady=(10,0))
+         cb_fps=ttk.Combobox(cfg,textvariable=self.v_fps,values=['24','30','60','keep'],width=7,state='readonly'); cb_fps.grid(row=3,column=7,pady=(10,0),padx=(6,0))
+         cb_res.bind('<<ComboboxSelected>>',lambda _e:self._update_output_preview()); cb_fps.bind('<<ComboboxSelected>>',lambda _e:self._update_output_preview())
+-        ttk.Label(cfg,text='FAST V2.1: mặc định chỉ encode clip nguồn ngắn thành cache 1080p/24 một lần rồi loop COPY 8–12h. Tránh việc lặp nguyên bitrate 4K rất lớn.',foreground='#1f6f43').grid(row=4,column=0,columnspan=9,sticky='w',pady=(10,0))
+-        ttk.Label(cfg,text='Tool kiểm tra dung lượng trước giai đoạn ghi dài; nếu hết ổ đĩa sẽ dừng sớm và xóa file dang dở. Auto thử NVENC → QSV → AMF → CPU.',foreground='#5d6d7e').grid(row=5,column=0,columnspan=9,sticky='w',pady=(4,0))
++        ttk.Label(cfg,text='Bitrate video:').grid(row=4,column=0,sticky='w',pady=(10,0))
++        sp_br=ttk.Spinbox(cfg,from_=0,to=50000,increment=100,textvariable=self.v_video_bitrate,width=9,command=self._update_output_preview); sp_br.grid(row=4,column=1,pady=(10,0),sticky='w')
++        sp_br.bind('<FocusOut>',lambda _e:self._update_output_preview()); sp_br.bind('<Return>',lambda _e:self._update_output_preview())
++        ttk.Label(cfg,text='kbps   •   3600 ≈ 16–18 GB / 10h   •   0 = dùng CRF/CQ',foreground='#8a5a00').grid(row=4,column=2,columnspan=7,sticky='w',pady=(10,0))
++        ttk.Label(cfg,text='FAST V2.2: mặc định encode clip nguồn ngắn 1080p/24 ở bitrate đã chọn một lần, sau đó loop COPY 8–12h. Bitrate 3600k phù hợp mục tiêu ~16–18 GB/10h.',foreground='#1f6f43').grid(row=5,column=0,columnspan=9,sticky='w',pady=(10,0))
++        ttk.Label(cfg,text='Bitrate chỉ làm giảm dung lượng khi video được encode (Chuẩn hóa FAST / độ sáng / full encode). Nếu COPY nguyên nguồn thì bitrate nguồn được giữ nguyên.',foreground='#5d6d7e').grid(row=6,column=0,columnspan=9,sticky='w',pady=(4,0))
+ 
+         action=ttk.LabelFrame(f,text='Render FAST',padding=10); action.grid(row=9,column=0,columnspan=4,sticky='nsew',pady=8)
+         action.columnconfigure(0,weight=1)
+@@ -324,7 +329,7 @@ class App(tk.Tk):
+                     mark='OK' if r['ok'] else 'KHÔNG ĐỦ'
+                     self.v_storage_info.set(f"Dung lượng nếu COPY nguồn: ~{format_bytes(r['estimate_bytes'])} • Trống: {format_bytes(r['free_bytes'])} • {mark}")
+                 elif self.v_normalize_fast.get():
+-                    self.v_storage_info.set(f"Chuẩn hóa FAST {self.v_resolution.get()}/{self.v_fps.get()}fps: tool sẽ đo bitrate cache thật và kiểm tra ổ đĩa trước khi ghi 8–12h.")
++                    self.v_storage_info.set(f"Chuẩn hóa FAST {self.v_resolution.get()}/{self.v_fps.get()}fps • bitrate {int(self.v_video_bitrate.get())} kbps: ước tính theo bitrate mục tiêu và kiểm tra ổ đĩa trước khi ghi 8–12h.")
+                 else:
+                     self.v_storage_info.set('Tool sẽ kiểm tra dung lượng trước khi ghi video dài.')
+             else:
+@@ -382,7 +387,7 @@ class App(tk.Tk):
+             rain_source=self.v_rain.get().strip(), wave_source=self.v_wave.get().strip(), thunder_source=self.v_thunder.get().strip(),
+             rain_curve_db=self.chart_rain.get_values(), wave_curve_db=self.chart_wave.get_values(), thunder_curve_db=self.chart_thunder.get_values(), brightness_curve_pct=self.chart_bright.get_values(),
+             apply_brightness=bool(self.v_apply_brightness.get()), brightness_mode=self.v_brightness_mode.get(), brightness_step_pct=float(self.v_brightness_step.get()),
+-            normalize_fast=bool(self.v_normalize_fast.get()), output_resolution=self.v_resolution.get(), output_fps=self.v_fps.get(),
++            normalize_fast=bool(self.v_normalize_fast.get()), output_resolution=self.v_resolution.get(), output_fps=self.v_fps.get(), video_bitrate_kbps=int(self.v_video_bitrate.get()),
+             original_audio_db=float(self.v_orig_db.get()), seed=int(self.v_seed.get()),
+             encoder=self.v_encoder.get(), preset=self.v_preset_x264.get(), crf=int(self.v_crf.get()), cq=int(self.v_crf.get()), block_seconds=float(self.v_block_seconds.get()),
+         )
+@@ -455,7 +460,7 @@ class App(tk.Tk):
+             old_out=d.get('output_path','')
+             self.v_output.set(d.get('output_dir') or (str(Path(old_out).parent) if old_out else ''))
+             self.v_hours.set(d.get('duration_hours',8)); self.v_rain.set(d.get('rain_source','')); self.v_wave.set(d.get('wave_source','')); self.v_thunder.set(d.get('thunder_source',''))
+-            self.v_orig_db.set(d.get('original_audio_db',-6)); self.v_apply_brightness.set(d.get('apply_brightness',False)); self.v_brightness_mode.set(d.get('brightness_mode','smart_fast')); self.v_brightness_step.set(d.get('brightness_step_pct',1.0)); self.v_normalize_fast.set(d.get('normalize_fast',True)); self.v_resolution.set(d.get('output_resolution','1080p')); self.v_fps.set(d.get('output_fps','24')); self.v_block_seconds.set(d.get('block_seconds',60.0)); self.v_encoder.set(d.get('encoder','auto')); self.v_preset_x264.set(d.get('preset','veryfast')); self.v_crf.set(d.get('crf',22)); self.v_seed.set(d.get('seed',777)); self.v_weather_preset.set(d.get('weather_preset','Sleep'))
++            self.v_orig_db.set(d.get('original_audio_db',-6)); self.v_apply_brightness.set(d.get('apply_brightness',False)); self.v_brightness_mode.set(d.get('brightness_mode','smart_fast')); self.v_brightness_step.set(d.get('brightness_step_pct',1.0)); self.v_normalize_fast.set(d.get('normalize_fast',True)); self.v_resolution.set(d.get('output_resolution','1080p')); self.v_fps.set(d.get('output_fps','24')); self.v_video_bitrate.set(d.get('video_bitrate_kbps',3600)); self.v_block_seconds.set(d.get('block_seconds',60.0)); self.v_encoder.set(d.get('encoder','auto')); self.v_preset_x264.set(d.get('preset','veryfast')); self.v_crf.set(d.get('crf',22)); self.v_seed.set(d.get('seed',777)); self.v_weather_preset.set(d.get('weather_preset','Sleep'))
+             self.chart_rain.set_values(d.get('rain_curve_db',PRESETS['Sleep']['rain'])); self.chart_wave.set_values(d.get('wave_curve_db',PRESETS['Sleep']['wave'])); self.chart_thunder.set_values(d.get('thunder_curve_db',PRESETS['Sleep']['thunder'])); self.chart_bright.set_values(d.get('brightness_curve_pct',PRESETS['Sleep']['bright']))
+             self.on_video_changed(); self._redraw_charts(); self.v_status.set(f'Đã mở project: {p}')
+         except Exception as ex: messagebox.showerror('Lỗi mở project',str(ex),parent=self)
+diff --git a/QuanZuRainV2_v21_base/rainloop/__init__.py b/QuanZuRainV2_v22/rainloop/__init__.py
+index a33997d..04188a1 100644
+--- a/QuanZuRainV2_v21_base/rainloop/__init__.py
++++ b/QuanZuRainV2_v22/rainloop/__init__.py
+@@ -1 +1 @@
+-__version__ = '2.1.0'
++__version__ = '2.2.0'
+diff --git a/QuanZuRainV2_v21_base/rainloop/engine.py b/QuanZuRainV2_v22/rainloop/engine.py
+index 5339209..c2cd675 100644
+--- a/QuanZuRainV2_v21_base/rainloop/engine.py
++++ b/QuanZuRainV2_v22/rainloop/engine.py
+@@ -140,13 +140,32 @@ def resolve_encoder(requested: str) -> str:
+     return 'libx264'
+ 
+ 
++def _target_bitrate_args(cfg: 'RenderConfig') -> list[str]:
++    kbps = max(0, int(getattr(cfg, 'video_bitrate_kbps', 0) or 0))
++    if kbps <= 0:
++        return []
++    # Target average bitrate controls long-video file size. Allow ~15% peak headroom.
++    max_kbps = max(kbps, int(round(kbps * 1.15)))
++    buf_kbps = max(kbps * 2, max_kbps)
++    return ['-b:v', f'{kbps}k', '-maxrate', f'{max_kbps}k', '-bufsize', f'{buf_kbps}k']
++
++
+ def encoder_args(name: str, cfg: 'RenderConfig') -> list[str]:
++    rate = _target_bitrate_args(cfg)
+     if name == 'h264_nvenc':
++        if rate:
++            return ['-c:v', 'h264_nvenc', '-preset', 'p4'] + rate + ['-pix_fmt', 'yuv420p']
+         return ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', str(int(cfg.cq)), '-b:v', '0', '-pix_fmt', 'yuv420p']
+     if name == 'h264_qsv':
++        if rate:
++            return ['-c:v', 'h264_qsv'] + rate + ['-pix_fmt', 'nv12']
+         return ['-c:v', 'h264_qsv', '-global_quality', str(int(cfg.cq)), '-pix_fmt', 'nv12']
+     if name == 'h264_amf':
++        if rate:
++            return ['-c:v', 'h264_amf', '-quality', 'speed'] + rate + ['-pix_fmt', 'yuv420p']
+         return ['-c:v', 'h264_amf', '-quality', 'speed', '-pix_fmt', 'yuv420p']
++    if rate:
++        return ['-c:v', 'libx264', '-preset', cfg.preset] + rate + ['-pix_fmt', 'yuv420p']
+     return ['-c:v', 'libx264', '-preset', cfg.preset, '-crf', str(int(cfg.crf)), '-pix_fmt', 'yuv420p']
+ 
+ 
+@@ -233,6 +252,7 @@ class RenderConfig:
+     normalize_fast: bool = True
+     output_resolution: str = '1080p'  # keep | 720p | 1080p | 1440p | 2160p
+     output_fps: str = '24'  # keep | 24 | 30 | 60
++    video_bitrate_kbps: int = 3600  # 0 = quality mode (CRF/CQ); 3600 ~= 16–18 GB/10h with 192k audio
+     original_audio_db: float = -6.0
+     seed: int = 777
+     encoder: str = 'auto'  # auto | h264_nvenc | h264_qsv | h264_amf | libx264
+@@ -321,7 +341,12 @@ def _media_video_rate_bps(info: dict) -> float:
+ 
+ def estimate_output_size_bytes(cfg: 'RenderConfig', media_info: Optional[dict] = None) -> int:
+     info = media_info or probe_media(cfg.video_path)
+-    video_bps = _media_video_rate_bps(info)
++    target_kbps = max(0, int(getattr(cfg, 'video_bitrate_kbps', 0) or 0))
++    will_encode_video = bool(cfg.normalize_fast or cfg.apply_brightness)
++    if target_kbps > 0 and will_encode_video:
++        video_bps = target_kbps * 1000.0
++    else:
++        video_bps = _media_video_rate_bps(info)
+     has_any_audio = bool(info.get('has_audio') and float(cfg.original_audio_db) > -90) or bool(cfg.rain_source or cfg.wave_source or cfg.thunder_source)
+     audio_bps = _parse_bitrate(cfg.audio_bitrate) if has_any_audio else 0
+     raw = (video_bps + audio_bps) * cfg.duration_seconds / 8.0
+@@ -528,7 +553,7 @@ def _smart_cache_dir(cfg: RenderConfig, encoder_used: str) -> Path:
+     st = p.stat()
+     key_data = '|'.join([
+         str(p), str(st.st_size), str(st.st_mtime_ns), encoder_used,
+-        cfg.preset, str(cfg.crf), str(cfg.cq), str(cfg.block_seconds), str(cfg.output_resolution), str(cfg.output_fps), 'smart-v4-block',
++        cfg.preset, str(cfg.crf), str(cfg.cq), str(cfg.video_bitrate_kbps), str(cfg.block_seconds), str(cfg.output_resolution), str(cfg.output_fps), 'smart-v5-bitrate-block',
+     ])
+     key = hashlib.sha1(key_data.encode('utf-8', 'replace')).hexdigest()[:20]
+     d = _cache_root() / key
+@@ -542,8 +567,8 @@ def _normalized_cache_dir(cfg: RenderConfig, encoder_used: str) -> Path:
+     st = p.stat()
+     key_data = '|'.join([
+         str(p), str(st.st_size), str(st.st_mtime_ns), encoder_used,
+-        cfg.preset, str(cfg.crf), str(cfg.cq), str(cfg.output_resolution), str(cfg.output_fps),
+-        'normalized-fast-v1',
++        cfg.preset, str(cfg.crf), str(cfg.cq), str(cfg.video_bitrate_kbps), str(cfg.output_resolution), str(cfg.output_fps),
++        'normalized-fast-v2-bitrate',
+     ])
+     key = hashlib.sha1(key_data.encode('utf-8', 'replace')).hexdigest()[:20]
+     d = _cache_root() / ('norm_' + key)
+diff --git a/QuanZuRainV2_v21_base/tests/test_engine.py b/QuanZuRainV2_v22/tests/test_engine.py
+index 759e034..e2087ee 100644
+--- a/QuanZuRainV2_v21_base/tests/test_engine.py
++++ b/QuanZuRainV2_v22/tests/test_engine.py
+@@ -6,7 +6,7 @@ from rainloop.engine import (
+     piecewise_linear_expr, brightness_expr, RenderConfig,
+     curve_value_at, quantize_value, smart_brightness_schedule,
+     db_volume_expr, make_output_path, classify_ffmpeg_error,
+-    estimate_output_size_bytes, output_storage_report,
++    estimate_output_size_bytes, output_storage_report, encoder_args,
+ )
+ 
+ 
+@@ -55,7 +55,7 @@ class EngineTests(unittest.TestCase):
+         self.assertIn('hết dung lượng', msg)
+ 
+     def test_estimate_output_size_from_known_bitrate(self):
+-        cfg = RenderConfig('a', '/tmp/out.mp4', duration_hours=1, rain_source='rain')
++        cfg = RenderConfig('a', '/tmp/out.mp4', duration_hours=1, rain_source='rain', normalize_fast=False, video_bitrate_kbps=0)
+         info = {
+             'duration': 10.0, 'has_audio': False,
+             'video_bitrate': 8_000_000, 'audio_bitrate': 0,
+@@ -79,6 +79,32 @@ class EngineTests(unittest.TestCase):
+             self.assertTrue(Path(r['folder']).exists())
+ 
+ 
++    def test_target_bitrate_encoder_args(self):
++        c = RenderConfig('a', 'b', video_bitrate_kbps=3600)
++        args = encoder_args('libx264', c)
++        self.assertIn('-b:v', args)
++        self.assertIn('3600k', args)
++        self.assertNotIn('-crf', args)
++
++    def test_zero_bitrate_keeps_crf_mode(self):
++        c = RenderConfig('a', 'b', video_bitrate_kbps=0, crf=22)
++        args = encoder_args('libx264', c)
++        self.assertIn('-crf', args)
++        self.assertNotIn('3600k', args)
++
++    def test_10h_3600k_targets_about_16_to_18_gib(self):
++        c = RenderConfig('a', 'b', duration_hours=10, normalize_fast=True, video_bitrate_kbps=3600, audio_bitrate='192k')
++        info = {
++            'duration': 9.2, 'has_audio': True,
++            'video_bitrate': 34_000_000, 'audio_bitrate': 192_000,
++            'format_bitrate': 34_192_000, 'source_size': 40_000_000,
++        }
++        size = estimate_output_size_bytes(c, info)
++        gib = size / (1024 ** 3)
++        self.assertGreaterEqual(gib, 16.0)
++        self.assertLessEqual(gib, 18.0)
++
++
+ if __name__ == '__main__':
+     unittest.main()
+-
++
