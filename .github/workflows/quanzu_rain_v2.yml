@@ -1,11 +1,11 @@
-name: QuanZu Rain V2.1 FAST
+name: QuanZu Rain V2.2 FAST
 
 on:
   push:
     branches: [ quanzu-rain-v2-fast ]
     paths:
       - 'QuanZuRainV2_B64/**'
-      - 'QuanZuRainV2_V2.1_README.md'
+      - 'QuanZuRainV2_V2.2.patch'
       - '.github/workflows/quanzu_rain_v2.yml'
   workflow_dispatch:
 
@@ -26,7 +26,7 @@ jobs:
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
 
-      - name: Rebuild V2.1 source
+      - name: Rebuild V2.2 source
         run: |
           cat QuanZuRainV2_B64/part*.txt | tr -d '\r\n' | base64 -d > QuanZuRainV2_Source_V2.1.zip
           echo "93b8c9d8c7bc01f10bfca9284cfd9fa33b6bbfc0c0a5e400044ab3e7ee18e180  QuanZuRainV2_Source_V2.1.zip" | sha256sum -c -
@@ -39,6 +39,8 @@ jobs:
           s = s.replace("self.assertEqual(str(Path(p).parent), '/tmp/render out')", "self.assertEqual(Path(p).parent, Path('/tmp/render out'))")
           p.write_text(s, encoding='utf-8')
           PY
+          cd src
+          git apply --unsafe-paths -p2 ../QuanZuRainV2_V2.2.patch
 
       - name: Syntax
         run: python -m compileall -q src
@@ -57,7 +59,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Rebuild V2.1 source
+      - name: Rebuild V2.2 source
         shell: pwsh
         run: |
           $b64 = (Get-ChildItem QuanZuRainV2_B64\part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
@@ -65,10 +67,10 @@ jobs:
           $hash = (Get-FileHash QuanZuRainV2_Source_V2.1.zip -Algorithm SHA256).Hash.ToLower()
           if ($hash -ne '93b8c9d8c7bc01f10bfca9284cfd9fa33b6bbfc0c0a5e400044ab3e7ee18e180') { throw "Source SHA256 mismatch: $hash" }
           Expand-Archive -Path QuanZuRainV2_Source_V2.1.zip -DestinationPath src
-          $p = 'src\tests\test_engine.py'
-          $s = Get-Content $p -Raw
-          $s = $s.Replace("self.assertEqual(str(Path(p).parent), '/tmp/render out')", "self.assertEqual(Path(p).parent, Path('/tmp/render out'))")
-          Set-Content -Path $p -Value $s -Encoding utf8
+          python -c "from pathlib import Path; p=Path('src/tests/test_engine.py'); s=p.read_text(encoding='utf-8'); s=s.replace(\"self.assertEqual(str(Path(p).parent), '/tmp/render out')\", \"self.assertEqual(Path(p).parent, Path('/tmp/render out'))\"); p.write_text(s, encoding='utf-8')"
+          Push-Location src
+          git apply --unsafe-paths -p2 ../QuanZuRainV2_V2.2.patch
+          Pop-Location
 
       - name: Prepare FFmpeg for Windows tests
         shell: pwsh
@@ -94,11 +96,11 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pyinstaller
-          pyinstaller --noconfirm --clean --onefile --windowed --name QuanZuRainV2_1 app.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name QuanZuRainV2_2 app.py
           New-Item -ItemType Directory -Force package | Out-Null
-          Copy-Item dist\QuanZuRainV2_1.exe package\QuanZuRainV2_1.exe
+          Copy-Item dist\QuanZuRainV2_2.exe package\QuanZuRainV2_2.exe
           Copy-Item README.md package\README.md
-          Compress-Archive -Path app.py,rainloop,tests,README.md,requirements.txt,run_windows.bat -DestinationPath package\QuanZuRainV2_Source_V2.1.zip -Force
+          Compress-Archive -Path app.py,rainloop,tests,README.md,requirements.txt,run_windows.bat -DestinationPath package\QuanZuRainV2_Source_V2.2.zip -Force
 
       - name: Bundle FFmpeg essentials
         working-directory: src
@@ -113,13 +115,13 @@ jobs:
         working-directory: src
         shell: pwsh
         run: |
-          @('QuanZuRainV2_1.exe','ffmpeg.exe','ffprobe.exe','QuanZuRainV2_Source_V2.1.zip','README.md') | ForEach-Object {
+          @('QuanZuRainV2_2.exe','ffmpeg.exe','ffprobe.exe','QuanZuRainV2_Source_V2.2.zip','README.md') | ForEach-Object {
             if (-not (Test-Path (Join-Path 'package' $_))) { throw "Missing package file: $_" }
           }
           Get-ChildItem package | Select-Object Name,Length
 
       - uses: actions/upload-artifact@v4
         with:
-          name: QuanZuRainV2_1_FAST_Windows
+          name: QuanZuRainV2_2_FAST_Windows
           path: src/package/
           if-no-files-found: error
