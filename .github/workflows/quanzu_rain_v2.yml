@@ -1,9 +1,11 @@
-name: QuanZu Rain V2 FAST
+name: QuanZu Rain V2.1 FAST
+
 on:
   push:
     branches: [ quanzu-rain-v2-fast ]
     paths:
-      - 'QuanZuRainV2/**'
+      - 'QuanZuRainV2_B64/**'
+      - 'QuanZuRainV2_V2.1_README.md'
       - '.github/workflows/quanzu_rain_v2.yml'
   workflow_dispatch:
 
@@ -12,33 +14,71 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
+      - name: Rebuild V2.1 source
+        run: |
+          cat QuanZuRainV2_B64/part*.txt | tr -d '\r\n' | base64 -d > QuanZuRainV2_Source_V2.1.zip
+          echo "93b8c9d8c7bc01f10bfca9284cfd9fa33b6bbfc0c0a5e400044ab3e7ee18e180  QuanZuRainV2_Source_V2.1.zip" | sha256sum -c -
+          mkdir src
+          unzip -q QuanZuRainV2_Source_V2.1.zip -d src
+
       - name: Syntax
-        run: python -m compileall -q QuanZuRainV2
-      - name: Unit tests
-        working-directory: QuanZuRainV2
-        run: python -m unittest discover -s tests -v
+        run: python -m compileall -q src
+
+      - name: Unit + FFmpeg integration tests
+        working-directory: src
+        run: python -W error::ResourceWarning -m unittest discover -s tests -v
 
   windows-build:
     runs-on: windows-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Rebuild V2.1 source
+        shell: pwsh
+        run: |
+          $b64 = (Get-ChildItem QuanZuRainV2_B64\part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          [IO.File]::WriteAllBytes('QuanZuRainV2_Source_V2.1.zip',[Convert]::FromBase64String($b64))
+          $hash = (Get-FileHash QuanZuRainV2_Source_V2.1.zip -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne '93b8c9d8c7bc01f10bfca9284cfd9fa33b6bbfc0c0a5e400044ab3e7ee18e180') { throw "Source SHA256 mismatch: $hash" }
+          Expand-Archive -Path QuanZuRainV2_Source_V2.1.zip -DestinationPath src
+
+      - name: Windows source tests
+        working-directory: src
+        shell: pwsh
+        run: |
+          python -m compileall -q .
+          python -W error::ResourceWarning -m unittest discover -s tests -v
+
       - name: Build GUI EXE
-        working-directory: QuanZuRainV2
+        working-directory: src
         shell: pwsh
         run: |
           python -m pip install --upgrade pyinstaller
-          pyinstaller --noconfirm --clean --onefile --windowed --name QuanZuRainV2 app.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name QuanZuRainV2_1 app.py
           New-Item -ItemType Directory -Force package | Out-Null
-          Copy-Item dist\QuanZuRainV2.exe package\QuanZuRainV2.exe
+          Copy-Item dist\QuanZuRainV2_1.exe package\QuanZuRainV2_1.exe
           Copy-Item README.md package\README.md
+          Copy-Item ..\QuanZuRainV2_Source_V2.1.zip package\QuanZuRainV2_Source_V2.1.zip
+
       - name: Bundle FFmpeg essentials
-        working-directory: QuanZuRainV2
+        working-directory: src
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile ffmpeg.zip
@@ -47,12 +87,20 @@ jobs:
           if (-not $bin) { throw 'Không tìm thấy thư mục bin trong FFmpeg package' }
           Copy-Item (Join-Path $bin.FullName 'ffmpeg.exe') package\ffmpeg.exe
           Copy-Item (Join-Path $bin.FullName 'ffprobe.exe') package\ffprobe.exe
-      - name: Source ZIP
-        working-directory: QuanZuRainV2
+          & package\ffmpeg.exe -version | Select-Object -First 1
+          & package\ffprobe.exe -version | Select-Object -First 1
+
+      - name: Verify package
+        working-directory: src
         shell: pwsh
-        run: Compress-Archive -Path app.py,rainloop,tests,README.md,requirements.txt,run_windows.bat -DestinationPath package\QuanZuRainV2_Source_V2.zip -Force
+        run: |
+          @('QuanZuRainV2_1.exe','ffmpeg.exe','ffprobe.exe','QuanZuRainV2_Source_V2.1.zip','README.md') | ForEach-Object {
+            if (-not (Test-Path (Join-Path 'package' $_))) { throw "Missing package file: $_" }
+          }
+          Get-ChildItem package | Select-Object Name,Length
+
       - uses: actions/upload-artifact@v4
         with:
-          name: QuanZuRainV2_FAST_Windows
-          path: QuanZuRainV2/package/
+          name: QuanZuRainV2_1_FAST_Windows
+          path: src/package/
           if-no-files-found: error
