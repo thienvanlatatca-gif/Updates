@@ -1,4 +1,4 @@
-name: QuanZu Rain V2.3 TURBO
+name: QuanZu Rain V2.4 BATCH TURBO
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - 'QuanZuRainV2_B64/**'
       - 'QuanZuRainV2_v22_patch.py'
       - 'QuanZuRainV2_V2.3.patch.gz.b64'
+      - 'QuanZuRainV2_v24_patch.py'
       - '.github/workflows/quanzu_rain_v2.yml'
   workflow_dispatch:
 
@@ -28,7 +29,7 @@ jobs:
           ffprobe -version | head -n 1
           ffmpeg -hide_banner -encoders 2>&1 | grep -q libopus
 
-      - name: Rebuild V2.3 source
+      - name: Rebuild V2.4 source
         run: |
           cat QuanZuRainV2_B64/part*.txt | tr -d '\r\n' | base64 -d > QuanZuRainV2_Source_V2.1.zip
           echo "93b8c9d8c7bc01f10bfca9284cfd9fa33b6bbfc0c0a5e400044ab3e7ee18e180  QuanZuRainV2_Source_V2.1.zip" | sha256sum -c -
@@ -38,6 +39,8 @@ jobs:
           python -c "import base64,gzip,pathlib; pathlib.Path('QuanZuRainV2_V2.3.patch').write_bytes(gzip.decompress(base64.b64decode(pathlib.Path('QuanZuRainV2_V2.3.patch.gz.b64').read_text().strip())))"
           cd src
           git apply ../QuanZuRainV2_V2.3.patch
+          cd ..
+          python QuanZuRainV2_v24_patch.py src
 
       - name: Syntax
         run: python -m compileall -q src
@@ -56,7 +59,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Rebuild V2.3 source
+      - name: Rebuild V2.4 source
         shell: pwsh
         run: |
           $b64 = (Get-ChildItem QuanZuRainV2_B64\part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
@@ -96,11 +99,11 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pyinstaller
-          pyinstaller --noconfirm --clean --onefile --windowed --name QuanZuRainV2_3_TURBO app.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name QuanZuRainV2_4_BATCH_TURBO app.py
           New-Item -ItemType Directory -Force package | Out-Null
-          Copy-Item dist\QuanZuRainV2_3_TURBO.exe package\QuanZuRainV2_3_TURBO.exe
+          Copy-Item dist\QuanZuRainV2_4_BATCH_TURBO.exe package\QuanZuRainV2_4_BATCH_TURBO.exe
           Copy-Item README.md package\README.md
-          Compress-Archive -Path app.py,rainloop,tests,README.md,requirements.txt,run_windows.bat -DestinationPath package\QuanZuRainV2_Source_V2.3.zip -Force
+          Compress-Archive -Path app.py,rainloop,tests,README.md,requirements.txt,run_windows.bat -DestinationPath package\QuanZuRainV2_Source_V2.4.zip -Force
 
       - name: Bundle FFmpeg essentials
         working-directory: src
@@ -115,13 +118,13 @@ jobs:
         working-directory: src
         shell: pwsh
         run: |
-          @('QuanZuRainV2_3_TURBO.exe','ffmpeg.exe','ffprobe.exe','QuanZuRainV2_Source_V2.3.zip','README.md') | ForEach-Object {
+          @('QuanZuRainV2_4_BATCH_TURBO.exe','ffmpeg.exe','ffprobe.exe','QuanZuRainV2_Source_V2.4.zip','README.md') | ForEach-Object {
             if (-not (Test-Path (Join-Path 'package' $_))) { throw "Missing package file: $_" }
           }
           Get-ChildItem package | Select-Object Name,Length
 
       - uses: actions/upload-artifact@v4
         with:
-          name: QuanZuRainV2_3_TURBO_Windows
+          name: QuanZuRainV2_4_BATCH_TURBO_Windows
           path: src/package/
           if-no-files-found: error
