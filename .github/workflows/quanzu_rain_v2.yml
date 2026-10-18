@@ -72,6 +72,7 @@ jobs:
           Push-Location src
           git apply ..\QuanZuRainV2_V2.3.patch
           Pop-Location
+          python QuanZuRainV2_v24_patch.py src
 
       - name: Prepare FFmpeg for Windows tests
         shell: pwsh
